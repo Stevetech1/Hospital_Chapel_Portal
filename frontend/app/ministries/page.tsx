@@ -1,0 +1,3 @@
+import PublicPage from '../../components/PublicPage';
+import { SITE } from '../../lib/site-config';
+export default function MinistriesPage(){return <PublicPage title="Departments, Ministries & Committees" subtitle="Explore the ministry and service groups recorded in the current project seed data."><div className="feature-grid">{SITE.ministries.map((name,i)=><article className="feature" key={name}><small>MINISTRY {String(i+1).padStart(2,'0')}</small><h3>{name}</h3><p>Functions, leadership, membership, meeting schedules, annual reports and photographs will be maintained by authorized ministry administrators.</p></article>)}</div><div className="pending-panel">Ministry leaders and secretaries are not published until verified by Church Administration.</div></PublicPage>}

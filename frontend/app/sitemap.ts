@@ -1,0 +1,2 @@
+import type {MetadataRoute} from 'next';
+export default function sitemap():MetadataRoute.Sitemap{const base=process.env.NEXT_PUBLIC_SITE_URL||'http://localhost:3000';const paths=['','/about','/history','/leadership','/board','/ministries','/committees','/family-units','/themes','/bible-study','/digital-bible','/hymns','/sermons','/events','/outreach','/projects','/prayer','/testimonies','/media','/blog','/academy','/contact','/giving'];return paths.map(path=>({url:`${base}${path}`,lastModified:new Date(),changeFrequency:'weekly',priority:path===''?1:0.7}));}

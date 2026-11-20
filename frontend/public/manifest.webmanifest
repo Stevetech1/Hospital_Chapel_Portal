@@ -1,0 +1,16 @@
+{
+  "name": "Hospital Chapel UATH",
+  "short_name": "Hospital Chapel",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#079b59",
+  "icons": [
+    {
+      "src": "/media/hospital-chapel-logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

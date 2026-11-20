@@ -1,0 +1,9 @@
+'use client';
+import { FormEvent, useState } from 'react';
+import { publicSubmit } from '../lib/api';
+export default function PublicSubmissionForm({ kind }: { kind: 'prayer-requests' | 'testimonies' }) {
+  const prayer = kind === 'prayer-requests';
+  const [name,setName]=useState(''),[contact,setContact]=useState(''),[title,setTitle]=useState(''),[body,setBody]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
+  async function submit(e: FormEvent) { e.preventDefault(); setBusy(true); setNotice(''); try { await publicSubmit(kind, prayer ? { name, contact, request: body } : { name, title, story: body }); setNotice('Thank you. Your submission has been received for authorized review.'); setName('');setContact('');setTitle('');setBody(''); } catch (error) { setNotice(error instanceof Error ? error.message : 'Submission failed.'); } finally { setBusy(false); } }
+  return <form className="public-form" onSubmit={submit}><label>Your name (optional)<input value={name} onChange={e=>setName(e.target.value)} maxLength={180}/></label>{prayer ? <label>Phone or email (optional)<input value={contact} onChange={e=>setContact(e.target.value)} maxLength={180}/></label> : <label>Testimony title<input required value={title} onChange={e=>setTitle(e.target.value)} maxLength={180}/></label>}<label>{prayer ? 'Your prayer request' : 'Your testimony'}<textarea required value={body} onChange={e=>setBody(e.target.value)} minLength={5} maxLength={12000} rows={7}/></label><button className="primary" disabled={busy}>{busy ? 'Submitting…' : prayer ? 'Send prayer request privately' : 'Submit testimony for review'}</button><p role="status" className="form-notice">{notice}</p><small>{prayer ? 'Prayer requests are private and are not displayed publicly.' : 'Testimonies are not published until an authorized Church administrator reviews and approves them.'}</small></form>;
+}

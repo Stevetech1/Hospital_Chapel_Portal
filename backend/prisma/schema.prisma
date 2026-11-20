@@ -1,0 +1,483 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApprovalStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  RESTRICTED
+}
+
+enum ContactMessageStatus {
+  NEW
+  READ
+  IN_PROGRESS
+  RESOLVED
+  SPAM
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id                    String          @id @default(cuid())
+  email                 String          @unique
+  passwordHash          String
+  fullName              String
+  role                  String
+  scope                 String          @default("CHURCH")
+  familyUnitNumber      Int?
+  active                Boolean         @default(true)
+  tokenVersion          Int             @default(0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  auditLogs             AuditLog[]
+  memberProfile         Member?
+  guardianProfile       ParentGuardian?
+  studentProfile        AcademyStudent?
+  teacherClasses        TeacherClass[]
+  departmentLeaderships Department[]    @relation("DepartmentLeader")
+  passwordResetTokens   PasswordResetToken[]
+}
+
+model LeaderProfile {
+  id              String         @id @default(cuid())
+  fullName        String
+  position        String
+  profileType     String
+  biography       String?
+  photographUrl   String?
+  serviceStart    String?
+  serviceEnd      String?
+  appointmentDate DateTime?
+  departureDate   DateTime?
+  achievements    String?
+  contributions   String?
+  annualThemes    String?
+  status          ApprovalStatus @default(DRAFT)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Department {
+  id               String         @id @default(cuid())
+  name             String         @unique
+  category         String
+  description      String?
+  functions        String?
+  termsOfReference String?
+  leader           String?
+  leaderUserId     String?
+  leaderAccount    User?          @relation("DepartmentLeader", fields: [leaderUserId], references: [id])
+  secretary        String?
+  members          Json?
+  establishedAt    DateTime?
+  meetingSchedule  String?
+  activities       String?
+  annualReports    String?
+  photographs      Json?
+  documents        Json?
+  status           ApprovalStatus @default(DRAFT)
+}
+
+model FamilyUnit {
+  id              String         @id @default(cuid())
+  number          Int            @unique
+  name            String
+  members         Member[]
+  leader          String?
+  secretary       String?
+  functions       String?
+  meetingSchedule String?
+  announcements   String?
+  annualReports   String?
+  photographs     Json?
+  resources       Json?
+  status          ApprovalStatus @default(DRAFT)
+}
+
+model AnnualTheme {
+  id             String         @id @default(cuid())
+  year           Int            @unique
+  title          String
+  bibleReference String?
+  exposition     String?
+  graphicUrl     String?
+  status         ApprovalStatus @default(DRAFT)
+  months         MonthlyTheme[]
+}
+
+model MonthlyTheme {
+  id                  String         @id @default(cuid())
+  month               Int
+  subtitle            String?
+  bibleReference      String?
+  teachingMaterialUrl String?
+  status              ApprovalStatus @default(DRAFT)
+  annualThemeId       String
+  annualTheme         AnnualTheme    @relation(fields: [annualThemeId], references: [id], onDelete: Cascade)
+
+  @@unique([annualThemeId, month])
+}
+
+model ContentPage {
+  id         String         @id @default(cuid())
+  slug       String         @unique
+  title      String
+  body       String?
+  metadata   Json?
+  visibility Visibility     @default(PUBLIC)
+  status     ApprovalStatus @default(DRAFT)
+  updatedAt  DateTime       @updatedAt
+}
+
+model PrayerRequest {
+  id         String   @id @default(cuid())
+  name       String?
+  contact    String?
+  request    String
+  status     String   @default("NEW")
+  assignedTo String?
+  createdAt  DateTime @default(now())
+}
+
+model Testimony {
+  id               String         @id @default(cuid())
+  name             String?
+  title            String
+  story            String
+  consentToPublish Boolean        @default(false)
+  status           ApprovalStatus @default(SUBMITTED)
+  createdAt        DateTime       @default(now())
+}
+
+model Event {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  venue       String?
+  status      ApprovalStatus @default(DRAFT)
+}
+
+model Announcement {
+  id          String         @id @default(cuid())
+  title       String
+  body        String
+  category    String?
+  visibility  Visibility     @default(PUBLIC)
+  status      ApprovalStatus @default(DRAFT)
+  publishAt   DateTime?
+  expiresAt   DateTime?
+  createdById String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status, visibility])
+  @@index([publishAt])
+  @@index([expiresAt])
+}
+
+model Sermon {
+  id              String         @id @default(cuid())
+  title           String
+  preacher        String?
+  bibleReferences String?
+  topic           String?
+  sermonDate      DateTime?
+  videoUrl        String?
+  audioUrl        String?
+  transcript      String?
+  status          ApprovalStatus @default(DRAFT)
+}
+
+model ChurchProject {
+  id                       String    @id @default(cuid())
+  title                    String
+  description              String?
+  objectives               String?
+  status                   String    @default("PROPOSED")
+  startDate                DateTime?
+  completionDate           DateTime?
+  achievements             String?
+  approvedFinancialSummary String?
+  documents                Json?
+}
+
+model Outreach {
+  id                  String    @id @default(cuid())
+  name                String
+  community           String?
+  location            String?
+  outreachDate        DateTime?
+  services            String?
+  personnel           Json?
+  beneficiaryCount    Int?
+  aggregateStatistics Json?
+  reportUrl           String?
+  media               Json?
+}
+
+model Donation {
+  id                String        @id @default(cuid())
+  reference         String        @unique
+  category          String
+  amountKobo        Int
+  currency          String        @default("NGN")
+  anonymous         Boolean       @default(false)
+  donorName         String?
+  provider          String
+  providerReference String?
+  status            PaymentStatus @default(PENDING)
+  verifiedAt        DateTime?
+  createdAt         DateTime      @default(now())
+}
+
+model AcademyStudent {
+  id              String              @id @default(cuid())
+  admissionNumber String              @unique
+  firstName       String
+  lastName        String
+  classLevel      String?
+  dateOfBirth     DateTime?
+  guardianUserId  String?
+  userId          String?             @unique
+  classId         String?
+  class           AcademicClass?      @relation(fields: [classId], references: [id])
+  assessments     StudentAssessment[]
+  attendance      AttendanceRecord[]
+  submissions     StudentSubmission[]
+  user            User?               @relation(fields: [userId], references: [id])
+  guardians       GuardianStudent[]
+  status          String              @default("ACTIVE")
+}
+
+model ParentGuardian {
+  id        String            @id @default(cuid())
+  userId    String            @unique
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone     String?
+  students  GuardianStudent[]
+  createdAt DateTime          @default(now())
+}
+
+model GuardianStudent {
+  id           String         @id @default(cuid())
+  guardianId   String
+  studentId    String
+  relationship String?
+  guardian     ParentGuardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  student      AcademyStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([guardianId, studentId])
+}
+
+model AcademicClass {
+  id           String               @id @default(cuid())
+  name         String               @unique
+  level        String?
+  academicYear String?
+  students     AcademyStudent[]
+  assignments  AcademicAssignment[]
+  teachers     TeacherClass[]
+}
+
+model TeacherClass {
+  id            String        @id @default(cuid())
+  teacherUserId String
+  classId       String
+  teacher       User          @relation(fields: [teacherUserId], references: [id], onDelete: Cascade)
+  class         AcademicClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherUserId, classId])
+}
+
+model AcademyStaff {
+  id             String  @id @default(cuid())
+  fullName       String
+  role           String
+  biography      String?
+  qualifications String?
+  photographUrl  String?
+}
+
+model AcademyApplication {
+  id             String   @id @default(cuid())
+  applicantName  String
+  guardianName   String
+  guardianEmail  String
+  requestedLevel String?
+  documents      Json?
+  status         String   @default("RECEIVED")
+  createdAt      DateTime @default(now())
+}
+
+model StudentAssessment {
+  id             String         @id @default(cuid())
+  studentId      String
+  subject        String
+  assessmentName String
+  score          Float?
+  maxScore       Float?
+  term           String?
+  remarks        String?
+  recordedAt     DateTime       @default(now())
+  student        AcademyStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceRecord {
+  id             String         @id @default(cuid())
+  studentId      String
+  attendanceDate DateTime
+  status         String
+  note           String?
+  student        AcademyStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, attendanceDate])
+}
+
+model AcademicAssignment {
+  id           String              @id @default(cuid())
+  title        String
+  instructions String?
+  dueAt        DateTime?
+  classId      String?
+  resourceUrl  String?
+  status       ApprovalStatus      @default(DRAFT)
+  class        AcademicClass?      @relation(fields: [classId], references: [id])
+  submissions  StudentSubmission[]
+}
+
+model StudentSubmission {
+  id            String             @id @default(cuid())
+  assignmentId  String
+  studentId     String
+  submissionUrl String?
+  responseText  String?
+  submittedAt   DateTime           @default(now())
+  feedback      String?
+  score         Float?
+  assignment    AcademicAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student       AcademyStudent     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+}
+
+model AcademyResource {
+  id          String     @id @default(cuid())
+  title       String
+  category    String
+  description String?
+  fileUrl     String?
+  visibility  Visibility @default(RESTRICTED)
+}
+
+model Document {
+  id             String         @id @default(cuid())
+  title          String
+  category       String
+  description    String?
+  fileUrl        String
+  mimeType       String?
+  scope          String         @default("CHURCH")
+  uploaderId     String?
+  approvalStatus ApprovalStatus @default(DRAFT)
+  visibility     Visibility     @default(RESTRICTED)
+  createdAt      DateTime       @default(now())
+}
+
+model ContactMessage {
+  id        String               @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  status    ContactMessageStatus @default(NEW)
+  readAt    DateTime?
+  handledAt DateTime?
+  createdAt DateTime             @default(now())
+
+  @@index([status, createdAt])
+}
+
+model Member {
+  id           String      @id @default(cuid())
+  memberNumber String?     @unique
+  fullName     String
+  email        String?
+  phone        String?
+  address      String?
+  dateJoined   DateTime?
+  familyUnitId String?
+  familyUnit   FamilyUnit? @relation(fields: [familyUnitId], references: [id])
+  userId       String?     @unique
+  user         User?       @relation(fields: [userId], references: [id])
+  status       String      @default("PENDING")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model PaymentEvent {
+  id              String   @id @default(cuid())
+  provider        String
+  providerEventId String   @unique
+  reference       String
+  eventType       String
+  payload         Json
+  processedAt     DateTime @default(now())
+}
+
+model ContentRevision {
+  id        String   @id @default(cuid())
+  entity    String
+  entityId  String
+  version   Int
+  snapshot  Json
+  changedBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([entity, entityId, version])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
